@@ -6,7 +6,18 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
-return Application::configure(basePath: dirname(__DIR__))
+$isVercel = isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || getenv('VERCEL');
+
+if ($isVercel) {
+    $storagePath = '/tmp/storage';
+    foreach (['framework/cache/data', 'framework/sessions', 'framework/views', 'logs'] as $dir) {
+        if (! is_dir($storagePath.'/'.$dir)) {
+            mkdir($storagePath.'/'.$dir, 0755, true);
+        }
+    }
+}
+
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -22,4 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
-    })->create();
+    });
+
+if ($isVercel) {
+    $app->useStoragePath('/tmp/storage');
+}
+
+return $app->create();
