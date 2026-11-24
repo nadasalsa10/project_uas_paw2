@@ -6,34 +6,21 @@ const cors = require('cors');
 
 const logger = require('./middlewares/logger');
 const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
-
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ---------- Koneksi Database (Cached untuk Serverless Vercel) ----------
+// ---------- Koneksi Database (Cached untuk Serverless) ----------
 const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
 
-let isConnected = false;
 const connectDB = async () => {
-  if (isConnected || mongoose.connection.readyState === 1) {
-    return;
+  if (mongoose.connection.readyState === 1) return;
+  if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+    throw new Error('MONGODB_URI belum diatur di Environment Variables Vercel');
   }
-  try {
-    await mongoose.connect(mongoURI);
-    isConnected = true;
-    console.log('Terhubung ke MongoDB');
-  } catch (err) {
-    console.error('Gagal terhubung ke MongoDB:', err.message);
-  }
+  await mongoose.connect(mongoURI);
 };
-
-// Pastikan koneksi DB dipanggil setiap ada request masuk
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
 
 // ---------- Middleware global ----------
 app.use(logger);
@@ -42,24 +29,38 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 app.use(express.json());
+app.use((req, res, next) => {
+  req.body = req.body ?? {};
+  next();
+});
 
 // ---------- Route dasar ----------
 app.get('/', (req, res) => {
   res.send('Server SIPP berjalan!');
 });
 
-// ---------- Route per modul ----------
-app.use('/auth', authRoutes);
+// ---------- Route per modul (hubungkan DB sebelum masuk controller) ----------
+app.use('/auth', async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+}, authRoutes);
 
-// ---------- Handler 404 dan error handler (paling bawah) ----------
+// ---------- Handler 404 dan error handler ----------
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ---------- Jalankan Server Lokal & Export untuk Vercel ----------
 if (process.env.NODE_ENV !== 'production') {
-  connectDB().then(() => {
-    app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
-  });
+  connectDB()
+    .then(() => {
+      console.log('Terhubung ke MongoDB');
+      app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
+    })
+    .catch((err) => console.error('Gagal terhubung:', err.message));
 }
 
 module.exports = app;
