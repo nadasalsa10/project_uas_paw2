@@ -36,6 +36,17 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // 2. Official Admin User (Admin Demo)
+        User::firstOrCreate(
+            ['email' => 'admindemo@gmail.com'],
+            [
+                'name' => 'Admin SIPP',
+                'phone' => '081234567800',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ]
+        );
+
         // 3. Official Drivers (Driver Demo, Nada Salsabilah & Aqila Nike Indriani)
         $driversToSeed = [
             ['name' => 'Driver Demo', 'email' => 'driverdemo@gmail.com', 'phone' => '081234567802', 'sim' => 'SIM-A1-00001'],
