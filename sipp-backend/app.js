@@ -12,6 +12,29 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ---------- Koneksi Database (Cached untuk Serverless Vercel) ----------
+const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
+
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected || mongoose.connection.readyState === 1) {
+    return;
+  }
+  try {
+    await mongoose.connect(mongoURI);
+    isConnected = true;
+    console.log('Terhubung ke MongoDB');
+  } catch (err) {
+    console.error('Gagal terhubung ke MongoDB:', err.message);
+  }
+};
+
+// Pastikan koneksi DB dipanggil setiap ada request masuk
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 // ---------- Middleware global ----------
 app.use(logger);
 app.use(cors({
@@ -32,15 +55,11 @@ app.use('/auth', authRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// ---------- Koneksi Database & Jalankan Server ----------
-const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
-
-mongoose.connect(mongoURI)
-  .then(() => {
-    console.log('Terhubung ke MongoDB');
+// ---------- Jalankan Server Lokal & Export untuk Vercel ----------
+if (process.env.NODE_ENV !== 'production') {
+  connectDB().then(() => {
     app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Gagal terhubung:', err.message);
-    process.exit(1);
   });
+}
+
+module.exports = app;
