@@ -7,7 +7,7 @@ const { errorHttp } = require('../middlewares/errorHandler');
 function buatToken(pengguna) {
   return jwt.sign(
     { id: pengguna._id, peran: pengguna.peran },
-    process.env.JWT_SECRET,
+    process.env.JWT_SECRET || 'kunci_rahasia_jwt_sipp_kelompok_5',
     { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
   );
 }
@@ -22,9 +22,9 @@ exports.register = async (req, res) => {
     throw errorHttp(400, 'kataSandi minimal 6 karakter');
   }
 
-  // Peran bawaan penumpang; admin hanya jika kode admin benar
+  // Peran bawaan penumpang/customer; admin hanya jika kode admin benar
   let peranFinal = 'penumpang';
-  if (peran === 'sopir') peranFinal = 'sopir';
+  if (peran === 'sopir' || peran === 'driver') peranFinal = 'sopir';
   if (peran === 'admin') {
     if (!process.env.KODE_ADMIN || kodeAdmin !== process.env.KODE_ADMIN) {
       throw errorHttp(403, 'Kode admin tidak valid');

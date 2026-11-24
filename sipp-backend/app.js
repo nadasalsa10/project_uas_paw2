@@ -20,27 +20,52 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ---------- Koneksi Database Caching (Serverless Friendly) ----------
+const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
+let isConnected = false;
+
+const sambungDB = async () => {
+  if (isConnected || mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    isConnected = true;
+    console.log('Terhubung ke MongoDB');
+  } catch (err) {
+    console.error('Koneksi MongoDB gagal/ditunda:', err.message);
+  }
+};
+
+// Sambungkan DB saat ada request jika belum tersambung
+app.use(async (req, res, next) => {
+  await sambungDB();
+  next();
+});
+
 // ---------- Route dasar ----------
 app.get('/', (req, res) => {
   res.send('Server SIPP berjalan!');
 });
 
-// ---------- Route per modul ----------
-app.use('/auth', authRoutes);
+app.get('/api', (req, res) => {
+  res.json({ message: 'Server SIPP REST API berjalan!' });
+});
 
-// ---------- Handler 404 dan error handler (paling bawah) ----------
+// ---------- Route per modul ----------
+// Mendukung akses /auth maupun /api/auth agar sinkron dengan laporan dan pengujian
+app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+
+// ---------- Handler 404 dan error handler ----------
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// ---------- Koneksi Database & Jalankan Server ----------
-const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
-
-mongoose.connect(mongoURI)
-  .then(() => {
-    console.log('Terhubung ke MongoDB');
+// Jalankan app.listen hanya di lingkungan lokal (bukan serverless Vercel)
+if (!process.env.VERCEL) {
+  sambungDB().then(() => {
     app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Gagal terhubung:', err.message);
-    process.exit(1);
   });
+}
+
+module.exports = app;
