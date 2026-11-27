@@ -34,11 +34,35 @@ app.use((req, res, next) => {
   next();
 });
 
+// ---------- Koneksi Database Caching (Serverless Friendly) ----------
+const mongoURI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sipp';
+let isConnected = false;
+
+const sambungDB = async () => {
+  if (isConnected || mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    isConnected = true;
+    console.log('Terhubung ke MongoDB');
+  } catch (err) {
+    console.error('Koneksi MongoDB gagal/ditunda:', err.message);
+  }
+};
+
+// Sambungkan DB saat ada request jika belum tersambung
+app.use(async (req, res, next) => {
+  await sambungDB();
+  next();
+});
+
 // ---------- Route dasar ----------
 app.get('/', (req, res) => {
   res.send('Server SIPP berjalan!');
 });
 
+<<<<<<< HEAD
 // ---------- Route per modul (hubungkan DB sebelum masuk controller) ----------
 app.use('/auth', async (req, res, next) => {
   try {
@@ -49,10 +73,22 @@ app.use('/auth', async (req, res, next) => {
   }
 }, authRoutes);
 
+=======
+app.get('/api', (req, res) => {
+  res.json({ message: 'Server SIPP REST API berjalan!' });
+});
+
+// ---------- Route per modul ----------
+// Mendukung akses /auth maupun /api/auth agar sinkron dengan laporan dan pengujian
+app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
+
+>>>>>>> 75a2baffaa421e026e0b62fa65e91d1c34f94003
 // ---------- Handler 404 dan error handler ----------
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+<<<<<<< HEAD
 // ---------- Jalankan Server Lokal & Export untuk Vercel ----------
 if (process.env.NODE_ENV !== 'production') {
   connectDB()
@@ -64,3 +100,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 module.exports = app;
+=======
+// Jalankan app.listen hanya di lingkungan lokal (bukan serverless Vercel)
+if (!process.env.VERCEL) {
+  sambungDB().then(() => {
+    app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
+  });
+}
+
+module.exports = app;
+>>>>>>> 75a2baffaa421e026e0b62fa65e91d1c34f94003

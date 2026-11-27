@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
 
   try {
     const token = header.split(' ')[1];
-    req.pengguna = jwt.verify(token, process.env.JWT_SECRET); // { id, peran, iat, exp }
+    req.pengguna = jwt.verify(token, process.env.JWT_SECRET || 'kunci_rahasia_jwt_sipp_kelompok_5'); // { id, peran, iat, exp }
     next();
   } catch (err) {
     next(errorHttp(401, 'Token tidak valid atau sudah kedaluwarsa'));

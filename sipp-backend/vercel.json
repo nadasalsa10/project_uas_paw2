@@ -1,5 +1,6 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "rewrites": [
     {
       "source": "/(.*)",
@@ -7,3 +8,22 @@
     }
   ]
 }
+=======
+  "builds": [
+    {
+      "src": "app.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app.js"
+    }
+  ],
+  "env": {
+    "JWT_SECRET": "kunci_rahasia_jwt_sipp_kelompok_5",
+    "JWT_EXPIRES_IN": "1d"
+  }
+}
+>>>>>>> 75a2baffaa421e026e0b62fa65e91d1c34f94003

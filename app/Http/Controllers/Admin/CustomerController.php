@@ -9,7 +9,7 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::with('user')->withCount('user')->orderBy('created_at', 'desc')->get();
+        $customers = Customer::with('user')->orderBy('created_at', 'desc')->get();
 
         return view('admin.customers.index', compact('customers'));
     }
