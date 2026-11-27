@@ -1,19 +1,9 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "sipp-backend/app.js",
-      "use": "@vercel/node"
+      "source": "/(.*)",
+      "destination": "/sipp-backend/app.js"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "sipp-backend/app.js"
-    }
-  ],
-  "env": {
-    "JWT_SECRET": "kunci_rahasia_jwt_sipp_kelompok_5",
-    "JWT_EXPIRES_IN": "1d"
-  }
+  ]
 }
